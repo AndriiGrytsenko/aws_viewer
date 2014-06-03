@@ -93,7 +93,7 @@ def print_list(name, options, all_option=True):
 
 
 def print_instances(instances):
-    counter = {'running': 0, 'terminated': 0, 'shutting-down': 0, 'stopped': 0}
+    counter = {'running': 0, 'terminated': 0, 'shutting-down': 0, 'stopped': 0, 'pending': 0}
     print "%s%s" % (Bcolors.OKGREEN, '-'*111)
     print "| %11s |%12s |%18s |%15s |%10s |%14s |%15s |" % (
                                             'instance_id',
@@ -114,7 +114,7 @@ def print_instances(instances):
             color = Bcolors.FAIL
         elif inst.state == 'shutting-down':
             color = Bcolors.OKBLUE
-        elif inst.state == 'stopped':
+        elif inst.state == 'stopped' or inst.state == 'pending':
             color = Bcolors.WARNING
 
         print "%s| %11s |%12s |%18s |%15s |%10s |%14s |%15s |" % (
@@ -142,7 +142,6 @@ if __name__ == '__main__':
     region = print_list('region', ['us-west-2', 'us-east-1'], False)
 
     aws = Aws(config_file, region)
-
 
     for tag in aws.tags:
         values = aws.get_all_tag_values(tag)
