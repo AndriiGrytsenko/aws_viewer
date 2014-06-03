@@ -1,3 +1,4 @@
+from __future__ import print_function
 import boto.ec2
 import time
 import re
@@ -9,10 +10,13 @@ import optparse
 
 
 class Bcolors:
-    OKBLUE = '\033[94m'
-    OKGREEN = '\033[92m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
+    shuttingdown = '\033[94m'
+    running = '\033[92m'
+    default = '\033[92m'
+    stopped = '\033[93m'
+    pending = '\033[93m'
+    undefined = '\033[93m'
+    terminated = '\033[91m'
     ENDC = '\033[0m'
 
 class Aws:
@@ -56,10 +60,17 @@ class Aws:
                 cPickle.dump(self._instances, open(self._pickle_name, 'wb'))
         return self._instances
 
-    def filter_instances(self, key, value):
-        self._instances = [
-                inst for inst in self.instances if key in inst.tags and inst.tags[key] == value]
+    def filter_instances(self, tag, values):
+        result = list()
 
+        for inst in self.instances:
+            if tag in inst.tags:
+                for value in values:
+                    if inst.tags[tag] == value:
+                        result.append(inst)
+                        break
+
+        self._instances = result
 
     def get_all_tag_values(self, tag_name):
         values = set()
@@ -71,71 +82,69 @@ class Aws:
 
 def ask_numeric_options(max_option):
     while True:
+        valid = True
         selected = raw_input("Please enter option: ")
-        if not re.match("^\d+$", selected) or int(selected) > max_option:
-            print "Option %s is not valid option, try again" % selected
-        else:
-            return int(selected)
+
+        for option in selected.split(','):
+            if not re.match("^\d+$", option) or int(option) > max_option:
+                print("Option %s is not valid option, try again" % selected)
+                valid = False
+        if valid:
+            return selected.split(',')
+
 
 def print_list(name, options, all_option=True):
-    print "Possible options of %s" % name
+    print("Possible options of %s" % name)
     if all_option:
-        print '0) ALL'
+        print('0) ALL')
 
     for num, option in enumerate(options):
-        print "%s) %s" % (num + 1, option)
+        print("%s) %s" % (num + 1, option))
 
     selected = ask_numeric_options(len(options))
 
-    if selected > 0:
-        return options[selected-1]
-    else:
-        return False
+    result = list()
+    for choose in selected:
+        if int(choose) == 0:
+            return False
+        else:
+            result.append(options[int(choose)-1])
+
+    return result
 
 
-def print_instances(instances):
+def print_instances(instances, tag_list):
     counter = {'running': 0, 'terminated': 0, 'shutting-down': 0, 'stopped': 0, 'pending': 0}
-    print "%s%s" % (Bcolors.OKGREEN, '-'*111)
-    print "| %11s |%12s |%18s |%15s |%10s |%14s |%15s |" % (
-                                            'instance_id',
-                                            'environment',
-                                            'service',
-                                            'role',
-                                            'version',
-                                            'state',
-                                            'ip')
-    print "%s" % '-'*111
+    field_len = 48 + 17 * len(tag_list)
+    print("%s%s" % (Bcolors.default, '-' * field_len))
+    print("| %11s |" % 'instance_id', end='')
 
+    for tag in tag_list:
+        print("%15s |" % tag, end='')
+
+    print("%14s |%15s |" % ('state', 'ip'))
+
+    print("%s" % '-' * field_len)
     for inst in instances:
         counter[inst.state] += 1
         tags = inst.tags
-        if inst.state == 'running':
-            color = Bcolors.OKGREEN
-        elif inst.state == 'terminated':
-            color = Bcolors.FAIL
-        elif inst.state == 'shutting-down':
-            color = Bcolors.OKBLUE
-        elif inst.state == 'stopped' or inst.state == 'pending':
-            color = Bcolors.WARNING
+        color = inst.state.replace('-','')
 
-        print "%s| %11s |%12s |%18s |%15s |%10s |%14s |%15s |" % (
-                                            color,
-                                            inst.id,
-                                            tags.get('environment', 'UNDEF'),
-                                            tags.get('service', 'UNDEF'),
-                                            tags.get('role', 'UNDEF'),
-                                            tags.get('version', 'UNDEF'),
-                                            inst.state,
-                                            inst.private_ip_address)
+        print("%s| %11s |" % (getattr(Bcolors, color, 'undefined'), inst.id), end='')
 
-    print "%s%s" % ('-'*111, Bcolors.ENDC)
-    print "%s| TOTAL: %i | Running: %i | Stopped: %i | Terminated: %i |%s" % (
-                                            Bcolors.OKGREEN,
+        for tag in tag_list:
+            print("%15s |" % tags.get(tag, 'UNDEF'), end="")
+
+        print("%14s |%15s |" % (inst.state, inst.private_ip_address))
+
+    print("%s%s" % ('-' * field_len, Bcolors.ENDC))
+    print("%s| TOTAL: %i | Running: %i | Stopped: %i | Terminated: %i |%s" % (
+                                            Bcolors.default,
                                             len(instances),
                                             counter['running'],
                                             counter['stopped'],
                                             counter['terminated'] + counter['shutting-down'],
-                                            Bcolors.ENDC)
+                                            Bcolors.ENDC))
 
 
 if __name__ == '__main__':
@@ -143,25 +152,27 @@ if __name__ == '__main__':
 
     parser.add_option('-a', '--all', action="store_true", dest='all', help='print all instances')
     parser.add_option('-r', '--region', help='region name')
+    parser.add_option('-t', '--tags', help='tags list')
     parser.add_option('-c', '--config', help='config file', default='~/.aws_viewer')
 
     options, args = parser.parse_args()
+    possible_regions = ['us-west-2', 'us-east-1']
 
     if options.region:
         region = options.region
     else:
-        region = print_list('region', ['us-west-2', 'us-east-1'], False)
+        region = print_list('region', possible_regions, False)[0]
 
     aws = Aws(options.config, region)
+    tags = options.tags.split(',') if options.tags else aws.tags
 
     if options.all:
         aws.instances
     else:
-        for tag in aws.tags:
-            values = aws.get_all_tag_values(tag)
-            result = print_list(tag, list(values))
-            if result:
-                aws.filter_instances(tag, result)
+        for tag in tags:
+            possible_values = aws.get_all_tag_values(tag)
+            chosen_values = print_list(tag, list(possible_values))
+            if chosen_values:
+                aws.filter_instances(tag, chosen_values)
 
-
-    print_instances(aws.instances)
+    print_instances(aws.instances, tags)
