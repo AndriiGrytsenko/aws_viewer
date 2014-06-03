@@ -5,6 +5,7 @@ import cPickle
 from os import stat
 from os.path import isfile, expanduser
 import ConfigParser
+import optparse
 
 
 class Bcolors:
@@ -138,16 +139,29 @@ def print_instances(instances):
 
 
 if __name__ == '__main__':
-    config_file = '~/.aws_viewer'
-    region = print_list('region', ['us-west-2', 'us-east-1'], False)
+    parser = optparse.OptionParser()
 
-    aws = Aws(config_file, region)
+    parser.add_option('-a', '--all', action="store_true", dest='all', help='print all instances')
+    parser.add_option('-r', '--region', help='region name')
+    parser.add_option('-c', '--config', help='config file', default='~/.aws_viewer')
 
-    for tag in aws.tags:
-        values = aws.get_all_tag_values(tag)
-        result = print_list(tag, list(values))
-        if result:
-            aws.filter_instances(tag, result)
+    options, args = parser.parse_args()
+
+    if options.region:
+        region = options.region
+    else:
+        region = print_list('region', ['us-west-2', 'us-east-1'], False)
+
+    aws = Aws(options.config, region)
+
+    if options.all:
+        aws.instances
+    else:
+        for tag in aws.tags:
+            values = aws.get_all_tag_values(tag)
+            result = print_list(tag, list(values))
+            if result:
+                aws.filter_instances(tag, result)
 
 
     print_instances(aws.instances)
