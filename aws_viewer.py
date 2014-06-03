@@ -21,7 +21,10 @@ class Aws:
         self._instances = []
         self.get_configuration()
         if not self.is_cache_valid():
-            self.conn = boto.ec2.connect_to_region(region,
+            if self._using_iam_role:
+                self.conn = boto.ec2.connect_to_region(region)
+            else:
+                self.conn = boto.ec2.connect_to_region(region,
                            aws_access_key_id=self._aws_secret_key,
                            aws_secret_access_key=self._aws_secret_access_key)
 
@@ -32,6 +35,7 @@ class Aws:
         self._aws_secret_access_key = config.get(default_section, 'aws_secret_access_key')
         self._cache_timeout = config.getint(default_section, 'cache_timeout')
         self.tags = config.get(default_section, 'tags').replace(' ', '').split(',')
+        self._using_iam_role = config.getboolean(default_section, 'using_iam_role')
 
     def is_cache_valid(self):
         if isfile(self._pickle_name):

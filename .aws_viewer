@@ -1,5 +1,6 @@
 [default]
 aws_secret_key = XXX
 aws_secret_access_key = XXX
+using_iam_role = false
 cache_timeout = 120
 tags = environment,service,role,version
