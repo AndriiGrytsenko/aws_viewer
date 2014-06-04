@@ -46,10 +46,10 @@ set `using_iam_role` to `true`
 
 Usage
 ---------
-`python aws_viewer` - interactive mode
-`python aws_viewer -a -r us-west-2` - print all instances in 'us-west-2'
-`python aws_viewer -a -r us-west-2  -t version,role` - show all instances with tags `role` and `version`(override `tags` from config)
-`python aws_viewer -t version,role` - ask about `role` and `version` tags
+`python aws_viewer` - interactive mode      
+`python aws_viewer -a -r us-west-2` - print all instances in 'us-west-2'       
+`python aws_viewer -a -r us-west-2  -t version,role` - show all instances with tags `role` and `version`(override `tags` from config)        
+`python aws_viewer -t version,role` - ask about `role` and `version` tags       
 
 
 ####Intercative mode(default) example:
