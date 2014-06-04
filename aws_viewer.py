@@ -20,11 +20,13 @@ class Bcolors:
     ENDC = '\033[0m'
 
 class Aws:
-    def __init__(self, config_file, region):
+    def __init__(self, config_file, default_section='default'):
         self.config_file = config_file
-        self._pickle_name = '/tmp/aws.' + region + '.pickle'
         self._instances = []
-        self.get_configuration()
+        self.get_configuration(default_section)
+
+    def connect_to_region(self, region):
+        self.region = region
         if not self.is_cache_valid():
             if self._using_iam_role:
                 self.conn = boto.ec2.connect_to_region(region)
@@ -33,20 +35,26 @@ class Aws:
                             aws_access_key_id=self._aws_secret_key,
                             aws_secret_access_key=self._aws_secret_access_key)
 
-    def get_configuration(self, default_section='default'):
+    def get_configuration(self, default_section):
+        delimiter = ',\s*'
         config = ConfigParser.RawConfigParser()
         config.read(expanduser(self.config_file))
         self._aws_secret_key = config.get(default_section, 'aws_secret_key')
         self._aws_secret_access_key = config.get(default_section, 'aws_secret_access_key')
         self._cache_timeout = config.getint(default_section, 'cache_timeout')
-        self.tags = config.get(default_section, 'tags').replace(' ', '').split(',')
+        self.tags = re.split(delimiter, config.get(default_section, 'tags'))
         self._using_iam_role = config.getboolean(default_section, 'using_iam_role')
+        self.regions = re.split(delimiter, config.get(default_section, 'regions'))
 
     def is_cache_valid(self):
         if isfile(self._pickle_name):
             if stat(self._pickle_name).st_mtime > time.time() - self._cache_timeout:
                 return True
         return False
+
+    @property
+    def _pickle_name(self):
+        return '/tmp/aws.' + self.region + '.pickle'
 
     @property
     def instances(self):
@@ -156,14 +164,15 @@ if __name__ == '__main__':
     parser.add_option('-c', '--config', help='config file', default='~/.aws_viewer')
 
     options, args = parser.parse_args()
-    possible_regions = ['us-west-2', 'us-east-1']
+    aws = Aws(options.config)
 
     if options.region:
         region = options.region
     else:
-        region = print_list('region', possible_regions, False)[0]
+        region = print_list('region', aws.regions, False)[0]
 
-    aws = Aws(options.config, region)
+    aws.connect_to_region(region)
+
     tags = options.tags.split(',') if options.tags else aws.tags
 
     if options.all:
