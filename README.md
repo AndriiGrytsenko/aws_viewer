@@ -33,12 +33,12 @@ tags = environment,service,role,version
 regions = us-west-2,us-east-1
 ```
 
-**aws_access_key_id** - amazon access key(ignored if **using_iam_role** is true)
-**aws_secret_access_key** - amazon secret access key(ignored if **using_iam_role** is true)
-**cache_timeout** - set cache timeout on amazon responce in seconds(optional parameter, default 30 seconds)
-**using_iam_role** - set to true to use IAM role
-**tags** - which tags print/ask. Mandatory
-**regions** - will be appear in interactive mode as an option(default us-west-2 ans us-east-1)
+**aws_access_key_id** - amazon access key(ignored if **using_iam_role** is true)      
+**aws_secret_access_key** - amazon secret access key(ignored if **using_iam_role** is true)     
+**cache_timeout** - set cache timeout on amazon responce in seconds(optional parameter, default 30 seconds)     
+**using_iam_role** - set to true to use IAM role     
+**tags** - which tags print/ask. Mandatory    
+**regions** - will be appear in interactive mode as an option(default us-west-2 ans us-east-1)     
 
 ####IAM Support
 
