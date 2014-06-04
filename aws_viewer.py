@@ -19,11 +19,55 @@ class Bcolors:
     terminated = '\033[91m'
     ENDC = '\033[0m'
 
+
+class ConfigError(Exception):
+    pass
+
+
+class Config:
+    config = dict()
+
+    def __init__(self, config_file, cfg_keys, default_section='default'):
+        self._default_section = default_section
+        self._cfg_keys = cfg_keys
+        self._dilimiter = ',\s*'
+
+        self._config = ConfigParser.RawConfigParser()
+        self._config.read(expanduser(config_file))
+        self.get_configuration()
+
+    def __get_key(self, key, attrs):
+
+        if 'is_list' in attrs and attrs['is_list']:
+            self.config[key] = re.split(self._dilimiter, getattr(self._config, attrs['method'])(self._default_section, key))
+        else:
+            self.config[key] = getattr(self._config, attrs['method'])(self._default_section, key)
+
+    def get_configuration(self):
+        cfg = dict()
+
+        for key, attrs in self._cfg_keys.iteritems():
+            try:
+                self.__get_key(key, attrs)
+            except:
+                if 'mandatory' in attrs and attrs['mandatory']:
+                    raise ConfigError("Config key %s is mandatory" % key)
+                if 'default' in attrs:
+                    self.config[key] = attrs['default']
+
+
 class Aws:
-    def __init__(self, config_file, default_section='default'):
-        self.config_file = config_file
+    def __init__(self, config):
         self._instances = []
-        self.get_configuration(default_section)
+        self._cache_timeout = config['cache_timeout']
+        self.tags = config['tags']
+
+        if not 'using_iam_role' in config or not config['using_iam_role']:
+            self._aws_access_key_id = config['aws_access_key_id']
+            self._aws_secret_access_key = config['aws_secret_access_key']
+            self._using_iam_role = False
+        else:
+            self._using_iam_role = True
 
     def connect_to_region(self, region):
         self.region = region
@@ -32,19 +76,8 @@ class Aws:
                 self.conn = boto.ec2.connect_to_region(region)
             else:
                 self.conn = boto.ec2.connect_to_region(region,
-                            aws_access_key_id=self._aws_secret_key,
+                            aws_access_key_id=self._aws_access_key_id,
                             aws_secret_access_key=self._aws_secret_access_key)
-
-    def get_configuration(self, default_section):
-        delimiter = ',\s*'
-        config = ConfigParser.RawConfigParser()
-        config.read(expanduser(self.config_file))
-        self._aws_secret_key = config.get(default_section, 'aws_secret_key')
-        self._aws_secret_access_key = config.get(default_section, 'aws_secret_access_key')
-        self._cache_timeout = config.getint(default_section, 'cache_timeout')
-        self.tags = re.split(delimiter, config.get(default_section, 'tags'))
-        self._using_iam_role = config.getboolean(default_section, 'using_iam_role')
-        self.regions = re.split(delimiter, config.get(default_section, 'regions'))
 
     def is_cache_valid(self):
         if isfile(self._pickle_name):
@@ -143,9 +176,9 @@ def print_instances(instances, tag_list):
         for tag in tag_list:
             print("%15s |" % tags.get(tag, 'UNDEF'), end="")
 
-        print("%14s |%15s |" % (inst.state, inst.private_ip_address))
+        print("%14s |%15s |%s" % (inst.state, inst.private_ip_address, Bcolors.ENDC))
 
-    print("%s%s" % ('-' * field_len, Bcolors.ENDC))
+    print("%s%s%s" % (Bcolors.default, '-' * field_len, Bcolors.ENDC))
     print("%s| TOTAL: %i | Running: %i | Stopped: %i | Terminated: %i |%s" % (
                                             Bcolors.default,
                                             len(instances),
@@ -164,12 +197,24 @@ if __name__ == '__main__':
     parser.add_option('-c', '--config', help='config file', default='~/.aws_viewer')
 
     options, args = parser.parse_args()
-    aws = Aws(options.config)
+
+    # describe configuration file
+    cfg_keys = {
+        'aws_access_key_id': { 'method': 'get'},
+        'aws_secret_access_key': { 'method': 'get'},
+        'cache_timeout': { 'method': 'getint', 'default': 30 },
+        'tags': { 'method': 'get', 'is_list': True, 'mandatory': True },
+        'using_iam_role': { 'method': 'getboolean' },
+        'regions': { 'method': 'get', 'is_list': True, 'default': ['us-west-2', 'us-east-1'] }
+    }
+
+    config = Config(options.config, cfg_keys).config
+    aws = Aws(config)
 
     if options.region:
         region = options.region
     else:
-        region = print_list('region', aws.regions, False)[0]
+        region = print_list('region', config['regions'], False)[0]
 
     aws.connect_to_region(region)
 

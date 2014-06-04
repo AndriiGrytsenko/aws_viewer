@@ -1,7 +1,7 @@
 [default]
-aws_secret_key = XXX
+aws_access_key_id = XXX
 aws_secret_access_key = XXX
 using_iam_role = false
-cache_timeout = 120
+cache_timeout = 30
 tags = environment,service,role,version
 regions = us-west-2,us-east-1
