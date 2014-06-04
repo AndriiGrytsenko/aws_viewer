@@ -30,6 +30,7 @@ aws_secret_access_key = XXX
 cache_timeout = 120
 using_iam_role = false
 tags = environment,service,role,version
+regions = us-west-2,us-east-1
 ```
 
 ####IAM Support
