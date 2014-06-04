@@ -30,8 +30,8 @@ class Aws:
                 self.conn = boto.ec2.connect_to_region(region)
             else:
                 self.conn = boto.ec2.connect_to_region(region,
-                           aws_access_key_id=self._aws_secret_key,
-                           aws_secret_access_key=self._aws_secret_access_key)
+                            aws_access_key_id=self._aws_secret_key,
+                            aws_secret_access_key=self._aws_secret_access_key)
 
     def get_configuration(self, default_section='default'):
         config = ConfigParser.RawConfigParser()
