@@ -42,3 +42,53 @@ Usage
 `python aws_viewer -a -r us-west-2` - print all instances in 'us-west-2'     
 `python aws_viewer -a -r us-west-2  -t version,role` - show all instances with tags `role` and `version`(override `tags` from config)     
 `python aws_viewer -t version,role` - ask about `role` and `version` tags     
+
+
+####Intercative mode(default) example:
+```
+python aws_viewer.py
+Possible options of region
+1) us-west-2
+2) us-east-1
+Please enter option: 1
+Possible options of environment
+0) ALL
+1) development
+2) staging
+3) production
+Please enter option: 3
+Possible options of service
+0) ALL
+1) service1
+2) service2
+Please enter option: 1
+Possible options of role
+0) ALL
+1) webserver
+2) database
+Please enter option: 1
+Possible options of version
+0) ALL
+1) 1.0.1
+2) 1.0.2
+Please enter option: 1
+```
+produces:      
+```
+--------------------------------------------------------------------------------------------------------------------
+| instance_id |    environment |        service |           role |        version |         state |             ip |
+--------------------------------------------------------------------------------------------------------------------
+|  i-xxxxxxxx |     production |       service1 |        webserver |          1.0.1 |       running |     xx.xx.xx.xx |
+|  i-xxxxxxxx |     production |       service1 |        webserver |          1.0.1 |       running |   xx.xx.xx.xx |
+--------------------------------------------------------------------------------------------------------------------
+| TOTAL: 2 | Running: 2 | Stopped: 0 | Terminated: 0 |
+```
+
+
+Screenshots
+---------
+`python aws_viewer -t environment,role`     
+![alt text](http://s29.postimg.org/wvlva4vyv/Foto_Flexer_Photo.jpg)
+`python aws_viewer -t environment,role,service,version`         
+![alt text](http://s9.postimg.org/y2dofqhdb/Foto_Flexer_Photo1.jpg)
+
