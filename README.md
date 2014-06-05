@@ -39,6 +39,7 @@ regions = us-west-2,us-east-1
 **using_iam_role** - set to true to use IAM role
 **tags** - which tags print/ask. Mandatory
 **regions** - will be appear in interactive mode as an option(default us-west-2 ans us-east-1)
+**cache_dir** - dir to store cache files(optional, default */tmp*)
 
 ####IAM Support
 
