@@ -72,7 +72,6 @@ class Config:
             self.config[key] = getattr(self._config, attrs['method'])(self._default_section, key)
 
     def get_configuration(self):
-        cfg = dict()
 
         for key, attrs in self._cfg_keys.iteritems():
             try:
@@ -158,6 +157,9 @@ def print_list(name, options, all_option=True):
     if all_option:
         print('0) ALL')
 
+    if options:
+        options.sort()
+
     for num, option in enumerate(options):
         print("%s) %s" % (num + 1, option))
 
@@ -198,9 +200,12 @@ def print_instances(instances, tag_list):
         print("%14s |%15s |%s" % (inst.state, inst.private_ip_address, Bcolors.ENDC))
 
     print("%s%s%s" % (Bcolors.default, '-' * field_len, Bcolors.ENDC))
+    print_footer(len(instances), counter)
+
+def print_footer(isnt_num, counter):
     print("%s| TOTAL: %i | Running: %i | Stopped: %i | Terminated: %i |%s" % (
                                             Bcolors.default,
-                                            len(instances),
+                                            isnt_num,
                                             counter['running'],
                                             counter['stopped'],
                                             counter['terminated'] + counter['shutting-down'],
